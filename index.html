@@ -1,443 +1,259 @@
+
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sundria - لوحة التحكم</title>
+    <title>Sundria - لوحة التحكم الذكية</title>
+    <link rel="icon" type="image/x-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Ctext y='.9em' font-size='90'%3E🔍%3C/text%3E%3C/svg%3E">
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
     <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
+    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/feather-icons/dist/feather.min.js"></script>
-    <script src="https://unpkg.com/feather-icons"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/animejs@3.2.1/lib/anime.min.js"></script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700&display=swap');
-        body {
+        @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;900&display=swap');
+        
+        :root {
+            --primary: #0ea5e9;
+            --secondary: #f59e0b;
+            --success: #10b981;
+            --danger: #ef4444;
+            --warning: #f59e0b;
+            --dark: #0f172a;
+            --light: #f1f5f9;
+        }
+        
+        * {
             font-family: 'Tajawal', sans-serif;
         }
-        .status-indicator {
-            width: 12px;
-            height: 12px;
-            border-radius: 50%;
-            display: inline-block;
-            margin-left: 8px;
+        
+        body {
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+            color: #f1f5f9;
+            overflow-x: hidden;
         }
-        .status-active {
-            background-color: #10B981;
-            box-shadow: 0 0 8px #10B981;
+        
+        .glass-effect {
+            background: rgba(30, 41, 59, 0.4);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(148, 163, 184, 0.1);
         }
-        .status-inactive {
-            background-color: #EF4444;
-            box-shadow: 0 0 8px #EF4444;
+        
+        .glow {
+            box-shadow: 0 0 20px rgba(14, 165, 233, 0.3);
         }
-        .heatmap {
-            background-image: url('http://static.photos/technology/640x360/42');
-            background-size: cover;
-            background-position: center;
+        
+        .status-pulse {
+            animation: pulse 2s infinite;
+        }
+        
+        @keyframes pulse {
+            0% { opacity: 1; }
+            50% { opacity: 0.5; }
+            100% { opacity: 1; }
+        }
+        
+        .chart-container {
             position: relative;
+            height: 300px;
         }
-        .heatmap-overlay {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(109, 40, 217, 0.3);
+        
+        .notification-enter {
+            animation: slideIn 0.3s ease-out;
+        }
+        
+        @keyframes slideIn {
+            from { transform: translateX(-100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        
+        .hover-scale:hover {
+            transform: scale(1.05);
+            transition: transform 0.3s ease;
+        }
+        
+        .gradient-text {
+            background: linear-gradient(45deg, #0ea5e9, #f59e0b);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
     </style>
 </head>
-<body class="bg-gray-50 text-gray-800">
-    <!-- Top Bar -->
-    <div class="bg-gradient-to-r from-purple-900 to-gray-800 text-white p-4 shadow-md">
-        <div class="container mx-auto flex justify-between items-center">
-            <div class="flex items-center space-x-2 space-x-reverse">
-                <span id="system-status" class="text-sm">يعمل الآن</span>
-                <span id="status-indicator" class="status-indicator status-active"></span>
-            </div>
-            <div class="text-xl font-bold">Sundria</div>
-            <div id="current-date" class="text-sm"></div>
+<body class="bg-slate-900">
+    <!-- Loading Screen -->
+    <div id="loading-screen" class="fixed inset-0 bg-slate-900 z-50 flex items-center justify-center">
+        <div class="text-center">
+            <div class="w-12 h-12 border-4 border-sky-500 border-t-transparent rounded-full animate-spin mx-auto mb-2"></div>
+            <p class="text-sky-400 text-sm">جاري التحميل...</p>
         </div>
     </div>
 
-    <!-- Main Content -->
-    <div class="container mx-auto p-4">
-        <!-- Live Overview Section -->
-        <section class="mb-8" data-aos="fade-up">
-            <h2 class="text-2xl font-bold mb-4 text-purple-900 border-b-2 border-purple-200 pb-2">نظرة عامة مباشرة</h2>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div class="bg-white p-6 rounded-lg shadow-md text-center">
-                    <div class="text-gray-500 mb-2">الألواح المفحوصة</div>
-                    <div class="text-4xl font-bold text-purple-800">1,248</div>
-                    <div class="text-sm text-gray-500 mt-2">اليوم</div>
-                </div>
-                <div class="bg-white p-6 rounded-lg shadow-md text-center">
-                    <div class="text-gray-500 mb-2">الألواح المرفوضة</div>
-                    <div class="text-4xl font-bold text-red-500">64</div>
-                    <div class="text-sm text-gray-500 mt-2">5.1% معدل الرفض</div>
-                </div>
-                <div class="bg-white p-6 rounded-lg shadow-md text-center">
-                    <div class="text-gray-500 mb-2">معدل الفحص</div>
-                    <div class="text-4xl font-bold text-green-600">112</div>
-                    <div class="text-sm text-gray-500 mt-2">لوح/ساعة</div>
-                </div>
-            </div>
-            
-            <!-- Alert Banner -->
-            <div class="mt-4 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-lg" data-aos="fade-up">
-                <div class="flex items-start">
-                    <div class="flex-shrink-0">
-                        <i data-feather="alert-triangle" class="text-yellow-500"></i>
+    <!-- Header -->
+    <header class="glass-effect sticky top-0 z-40">
+        <div class="container mx-auto px-4 py-3">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3 space-x-reverse">
+                    <div class="w-8 h-8 bg-gradient-to-r from-sky-500 to-amber-500 rounded flex items-center justify-center">
+                        <i data-feather="cpu" class="w-4 h-4 text-white"></i>
                     </div>
-                    <div class="mr-3">
-                        <p class="text-sm text-yellow-700">
-                            <span class="font-bold">تنبيه:</span> ارتفاع في نسبة الرفض إلى 5.1% خلال الساعة الماضية (زيادة 1.8%)
-                        </p>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Analytics Section -->
-        <section class="mb-8" data-aos="fade-up">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-2xl font-bold text-purple-900 border-b-2 border-purple-200 pb-2">تحليلات وتقارير زمنية</h2>
-                <div class="flex space-x-2 space-x-reverse">
-                    <button class="px-4 py-2 bg-purple-700 text-white rounded-md hover:bg-purple-800 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50">اليوم</button>
-                    <button class="px-4 py-2 bg-white text-purple-700 border border-purple-300 rounded-md hover:bg-purple-50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50">الأسبوع</button>
-                    <button class="px-4 py-2 bg-white text-purple-700 border border-purple-300 rounded-md hover:bg-purple-50 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50">الشهر</button>
-                </div>
-            </div>
-            
-            <div class="bg-white p-6 rounded-lg shadow-md">
-                <div class="h-64">
-                    <canvas id="analyticsChart"></canvas>
+                    <h1 class="text-lg font-bold gradient-text">Sundria AI</h1>
                 </div>
                 
-                <div class="mt-6 overflow-x-auto">
-                    <table class="min-w-full divide-y divide-gray-200">
-                        <thead class="bg-gray-50">
-                            <tr>
-                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">الفترة</th>
-                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">الألواح المفحوصة</th>
-                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">الألواح المرفوضة</th>
-                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">نسبة النجاح</th>
-                                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">وقت التوقف</th>
-                            </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
-                            <tr>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">اليوم</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">1,248</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">64</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">94.9%</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">23 دقيقة</td>
-                            </tr>
-                            <tr>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">الأسبوع</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">8,736</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">392</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">95.5%</td>
-                                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">2.1 ساعة</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                
-                <div class="mt-6 flex justify-end space-x-4 space-x-reverse">
-                    <button class="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-opacity-50 flex items-center">
-                        <i data-feather="download" class="w-4 h-4 ml-2"></i>
-                        تصدير PDF
+                <div class="flex items-center space-x-3 space-x-reverse">
+                    <div class="hidden md:flex items-center space-x-2 space-x-reverse">
+                        <span class="w-2 h-2 bg-green-500 rounded-full status-pulse"></span>
+                        <span class="text-green-400 text-xs">على أتم الاستعداد</span>
+                    </div>
+                    
+                    <button id="notification-btn" class="relative p-2 rounded hover:bg-slate-700 transition">
+                        <i data-feather="bell" class="w-4 h-4"></i>
+                        <span class="absolute -top-1 -right-1 w-2 h-2 bg-red-500 rounded-full"></span>
                     </button>
-                    <button class="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 flex items-center">
-                        <i data-feather="download" class="w-4 h-4 ml-2"></i>
-                        تصدير Excel
-                    </button>
+                    
+                    <div class="text-xs text-slate-400 hidden md:block" id="current-time">--:--</div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Dashboard -->
+    <main class="container mx-auto px-4 py-4">
+        <!-- KPI Cards -->
+        <section class="mb-4">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                <div class="glass-effect rounded-lg p-3">
+                    <p class="text-xs text-slate-400 flex items-center"><i data-feather="layers" class="w-3 h-3 mr-1"></i>الفحوصات</p>
+                    <p class="text-lg font-bold text-sky-400" id="total-inspected">1,248</p>
+                </div>
+
+                <div class="glass-effect rounded-lg p-3">
+                    <p class="text-xs text-red-400 flex items-center"><i data-feather="x-circle" class="w-3 h-3 mr-1"></i>الرفض</p>
+                    <p class="text-lg font-bold text-red-400" id="rejection-rate">5.1%</p>
+                </div>
+
+                <div class="glass-effect rounded-lg p-3">
+                    <p class="text-xs text-amber-400 flex items-center"><i data-feather="clock" class="w-3 h-3 mr-1"></i>المعدل</p>
+                    <p class="text-lg font-bold text-amber-400" id="inspection-rate">112</p>
+                </div>
+
+                <div class="glass-effect rounded-lg p-3">
+                    <p class="text-xs text-green-400 flex items-center"><i data-feather="activity" class="w-3 h-3 mr-1"></i>الكفاءة</p>
+                    <p class="text-lg font-bold text-green-400">98.7%</p>
                 </div>
             </div>
         </section>
 
-        <!-- Defects Analysis Section -->
-        <section class="mb-8" data-aos="fade-up">
-            <h2 class="text-2xl font-bold mb-4 text-purple-900 border-b-2 border-purple-200 pb-2">تحليل نوع العيوب وتفاصيلها</h2>
-            
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <!-- Defects Chart -->
-                <div class="bg-white p-6 rounded-lg shadow-md lg:col-span-2">
-                    <h3 class="text-lg font-semibold mb-4 text-gray-700">توزيع أنواع العيوب</h3>
-                    <div class="h-64">
-                        <canvas id="defectsChart"></canvas>
-                    </div>
-                </div>
-                
-                <!-- Heatmap -->
-                <div class="bg-white p-6 rounded-lg shadow-md">
-                    <h3 class="text-lg font-semibold mb-4 text-gray-700">خريطة حرارية للعيوب</h3>
-                    <div class="heatmap h-64 rounded-md overflow-hidden relative">
-                        <div class="heatmap-overlay"></div>
-                    </div>
+        <!-- Charts Section -->
+        <section class="mb-4 grid grid-cols-1 lg:grid-cols-3 gap-3">
+            <div class="lg:col-span-2 glass-effect rounded-lg p-3">
+                <h3 class="text-sm font-semibold mb-2 flex items-center">
+                    <i data-feather="trending-up" class="w-4 h-4 mr-1 text-sky-400"></i>
+                    الفحص 24h
+                </h3>
+                <div class="h-32">
+                    <canvas id="performanceChart"></canvas>
                 </div>
             </div>
-            
-            <!-- Defects Gallery -->
-            <div class="mt-6 bg-white p-6 rounded-lg shadow-md">
-                <h3 class="text-lg font-semibold mb-4 text-gray-700">معرض الألواح المرفوضة</h3>
-                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4">
-                    <div class="relative group">
-                        <img src="http://static.photos/technology/200x200/1" alt="لوح معيب" class="w-full h-24 object-cover rounded-md">
-                        <div class="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 flex items-center justify-center rounded-md transition-opacity duration-200">
-                            <span class="text-white text-xs text-center">شقوق دقيقة</span>
-                        </div>
-                    </div>
-                    <div class="relative group">
-                        <img src="http://static.photos/technology/200x200/2" alt="لوح معيب" class="w-full h-24 object-cover rounded-md">
-                        <div class="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 flex items-center justify-center rounded-md transition-opacity duration-200">
-                            <span class="text-white text-xs text-center">كسر سطحي</span>
-                        </div>
-                    </div>
-                    <div class="relative group">
-                        <img src="http://static.photos/technology/200x200/3" alt="لوح معيب" class="w-full h-24 object-cover rounded-md">
-                        <div class="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 flex items-center justify-center rounded-md transition-opacity duration-200">
-                            <span class="text-white text-xs text-center">نمط غير منتظم</span>
-                        </div>
-                    </div>
-                    <div class="relative group">
-                        <img src="http://static.photos/technology/200x200/4" alt="لوح معيب" class="w-full h-24 object-cover rounded-md">
-                        <div class="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 flex items-center justify-center rounded-md transition-opacity duration-200">
-                            <span class="text-white text-xs text-center">تلوث</span>
-                        </div>
-                    </div>
-                    <div class="relative group">
-                        <img src="http://static.photos/technology/200x200/5" alt="لوح معيب" class="w-full h-24 object-cover rounded-md">
-                        <div class="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 flex items-center justify-center rounded-md transition-opacity duration-200">
-                            <span class="text-white text-xs text-center">عيوب لحام</span>
-                        </div>
-                    </div>
-                    <div class="relative group">
-                        <img src="http://static.photos/technology/200x200/6" alt="لوح معيب" class="w-full h-24 object-cover rounded-md">
-                        <div class="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 flex items-center justify-center rounded-md transition-opacity duration-200">
-                            <span class="text-white text-xs text-center">مشاهدة الكل</span>
-                        </div>
-                    </div>
+
+            <div class="glass-effect rounded-lg p-3">
+                <h3 class="text-sm font-semibold mb-2 flex items-center">
+                    <i data-feather="pie-chart" class="w-4 h-4 mr-1 text-amber-400"></i>
+                    العيوب
+                </h3>
+                <div class="space-y-1 text-xs">
+                    <div class="flex justify-between"><span>الشقوق</span><span class="text-red-400">35%</span></div>
+                    <div class="flex justify-between"><span>الكسر</span><span class="text-orange-400">28%</span></div>
+                    <div class="flex justify-between"><span>نمط غير منتظم</span><span class="text-yellow-400">16%</span></div>
+                    <div class="flex justify-between"><span>تلوث</span><span class="text-green-400">11%</span></div>
+                    <div class="flex justify-between"><span>لحام</span><span class="text-blue-400">10%</span></div>
                 </div>
             </div>
         </section>
-    </div>
 
-    <!-- Notifications Sidebar -->
-    <div class="fixed top-0 left-0 h-full w-64 bg-white shadow-lg transform -translate-x-full lg:translate-x-0 transition-transform duration-300 z-50" id="notifications-sidebar">
-        <div class="p-4 border-b border-gray-200 flex justify-between items-center">
-            <h3 class="text-lg font-semibold text-gray-800">الإشعارات</h3>
-            <button id="close-notifications" class="text-gray-500 hover:text-gray-700">
-                <i data-feather="x"></i>
-            </button>
-        </div>
-        <div class="overflow-y-auto h-full">
-            <div class="p-4 border-b border-gray-200">
-                <div class="flex items-start mb-2">
-                    <div class="flex-shrink-0">
-                        <span class="h-2 w-2 rounded-full bg-red-500"></span>
-                    </div>
-                    <div class="mr-3">
-                        <p class="text-sm font-medium text-gray-900">ارتفاع مفاجئ في نسبة الرفض (12%)</p>
-                        <p class="text-xs text-gray-500">منذ 30 دقيقة</p>
-                    </div>
+        <!-- Live Feed -->
+        <section class="mb-4">
+            <div class="glass-effect rounded-lg p-3">
+                <div class="flex justify-between items-center mb-2">
+                    <h3 class="text-sm font-semibold">آخر النتائج</h3>
+                    <span class="w-2 h-2 bg-green-500 rounded-full status-pulse"></span>
                 </div>
-                <button class="text-xs text-purple-600 hover:text-purple-800">تم الحل</button>
-            </div>
-            <div class="p-4 border-b border-gray-200">
-                <div class="flex items-start mb-2">
-                    <div class="flex-shrink-0">
-                        <span class="h-2 w-2 rounded-full bg-yellow-500"></span>
-                    </div>
-                    <div class="mr-3">
-                        <p class="text-sm font-medium text-gray-900">الكاميرا لم تلتقط صورًا منذ 5 دقائق</p>
-                        <p class="text-xs text-gray-500">منذ 5 دقائق</p>
-                    </div>
+                <div id="latest-results" class="space-y-1 text-xs max-h-32 overflow-y-auto">
+                    <!-- javascript injects live rows -->
                 </div>
-                <button class="text-xs text-purple-600 hover:text-purple-800">تم الحل</button>
             </div>
-            <div class="p-4 border-b border-gray-200">
-                <div class="flex items-start mb-2">
-                    <div class="flex-shrink-0">
-                        <span class="h-2 w-2 rounded-full bg-yellow-500"></span>
-                    </div>
-                    <div class="mr-3">
-                        <p class="text-sm font-medium text-gray-900">انخفاض توهج الكوانتم دوتس</p>
-                        <p class="text-xs text-gray-500">منذ ساعة</p>
-                    </div>
-                </div>
-                <button class="text-xs text-purple-600 hover:text-purple-800">تم الحل</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Notifications Button -->
-    <button id="notifications-button" class="fixed bottom-6 left-6 bg-purple-700 text-white p-3 rounded-full shadow-lg hover:bg-purple-800 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-opacity-50 lg:hidden">
-        <i data-feather="bell"></i>
-        <span class="absolute top-0 right-0 h-5 w-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">3</span>
-    </button>
+        </section>
+    </main>
 
     <script>
-        // Initialize AOS
-        AOS.init({
-            duration: 800,
-            easing: 'ease-in-out',
-            once: true
-        });
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            // Hide loading screen
+            setTimeout(() => {
+                document.getElementById('loading-screen').style.display = 'none';
+            }, 800);
 
-        // Set current date
-        const now = new Date();
-        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-        document.getElementById('current-date').textContent = now.toLocaleDateString('ar-EG', options);
+            // Initialize Feather Icons
+            feather.replace();
 
-        // Charts
-        const analyticsCtx = document.getElementById('analyticsChart').getContext('2d');
-        const analyticsChart = new Chart(analyticsCtx, {
-            type: 'line',
-            data: {
-                labels: ['8:00', '9:00', '10:00', '11:00', '12:00', '13:00', '14:00'],
-                datasets: [
-                    {
-                        label: 'الألواح المفحوصة',
+            // Update time
+            function updateTime() {
+                const now = new Date();
+                const timeString = now.toLocaleTimeString('ar-SA', {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+                document.getElementById('current-time').textContent = timeString;
+            }
+            setInterval(updateTime, 1000);
+            updateTime();
+
+            // Simple chart
+            const ctx = document.getElementById('performanceChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: ['00','04','08','12','16','20','24'],
+                    datasets: [{
+                        label: 'الألواح',
                         data: [120, 190, 170, 160, 180, 150, 200],
-                        borderColor: '#7C3AED',
-                        backgroundColor: 'rgba(124, 58, 237, 0.1)',
-                        tension: 0.3,
+                        borderColor: '#0ea5e9',
+                        backgroundColor: 'rgba(14, 165, 233, 0.1)',
+                        tension: 0.4,
                         fill: true
-                    },
-                    {
-                        label: 'الألواح المرفوضة',
-                        data: [5, 8, 6, 9, 7, 10, 12],
-                        borderColor: '#EF4444',
-                        backgroundColor: 'rgba(239, 68, 68, 0.1)',
-                        tension: 0.3,
-                        fill: true
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: {
-                        position: 'top',
-                        rtl: true
-                    }
+                    }]
                 },
-                scales: {
-                    y: {
-                        beginAtZero: true
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { display: false } },
+                        y: { ticks: { color: '#94a3b8', font: { size: 10 } }, grid: { display: false } }
                     }
                 }
+            });
+
+            // Live feed
+            const latestResults = document.getElementById('latest-results');
+            const defectTypes = ['سليم','شقوق','كسر','نمط','تلوث','لحام'];
+            function addResult() {
+                const panel = `PCB-${Math.floor(Math.random()*9999)}`;
+                const defect = defectTypes[Math.floor(Math.random()*defectTypes.length)];
+                const status = defect==='سليم' ? 'text-green-400':'text-red-400';
+                latestResults.innerHTML = `
+                    <div class="flex justify-between items-center px-1 py-1 hover:bg-slate-400/10 rounded">
+                        <span>${panel}</span>
+                        <span class="${status}">${defect}</span>
+                    </div>
+                ` + latestResults.innerHTML.slice(0,200);
             }
+            setInterval(addResult, 2000);
+            addResult();
         });
-
-        const defectsCtx = document.getElementById('defectsChart').getContext('2d');
-        const defectsChart = new Chart(defectsCtx, {
-            type: 'bar',
-            data: {
-                labels: ['شقوق دقيقة', 'كسر سطحي', 'نمط غير منتظم', 'تلوث', 'عيوب لحام'],
-                datasets: [{
-                    label: 'عدد العيوب',
-                    data: [24, 18, 12, 6, 4],
-                    backgroundColor: [
-                        'rgba(124, 58, 237, 0.7)',
-                        'rgba(239, 68, 68, 0.7)',
-                        'rgba(16, 185, 129, 0.7)',
-                        'rgba(245, 158, 11, 0.7)',
-                        'rgba(59, 130, 246, 0.7)'
-                    ],
-                    borderColor: [
-                        'rgba(124, 58, 237, 1)',
-                        'rgba(239, 68, 68, 1)',
-                        'rgba(16, 185, 129, 1)',
-                        'rgba(245, 158, 11, 1)',
-                        'rgba(59, 130, 246, 1)'
-                    ],
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                plugins: {
-                    legend: {
-                        display: false
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true
-                    }
-                }
-            }
-        });
-
-        // Notifications sidebar toggle
-        document.getElementById('notifications-button').addEventListener('click', function(e) {
-            e.stopPropagation();
-            document.getElementById('notifications-sidebar').classList.toggle('-translate-x-full');
-        });
-
-        document.getElementById('close-notifications').addEventListener('click', function(e) {
-            e.stopPropagation();
-            document.getElementById('notifications-sidebar').classList.add('-translate-x-full');
-        });
-
-        // Close notifications when clicking outside
-        document.addEventListener('click', function(e) {
-            const sidebar = document.getElementById('notifications-sidebar');
-            const button = document.getElementById('notifications-button');
-            
-            if (!sidebar.contains(e.target) && e.target !== button && !button.contains(e.target)) {
-                sidebar.classList.add('-translate-x-full');
-            }
-        });
-
-        // Simulate system status change
-        setInterval(() => {
-            const statusIndicator = document.getElementById('status-indicator');
-            const statusText = document.getElementById('system-status');
-            const isActive = statusIndicator.classList.contains('status-active');
-            
-            if (Math.random() > 0.9) { // 10% chance to change status
-                if (isActive) {
-                    statusIndicator.classList.remove('status-active');
-                    statusIndicator.classList.add('status-inactive');
-                    statusText.textContent = 'متوقف مؤقتًا';
-                } else {
-                    statusIndicator.classList.remove('status-inactive');
-                    statusIndicator.classList.add('status-active');
-                    statusText.textContent = 'يعمل الآن';
-                }
-            }
-        }, 10000);
-
-        // Update live data periodically
-        setInterval(() => {
-            const inspectedElement = document.querySelector('.text-purple-800');
-            const rejectedElement = document.querySelector('.text-red-500');
-            const rateElement = document.querySelector('.text-green-600');
-            
-            // Random small variations
-            const inspected = parseInt(inspectedElement.textContent.replace(/,/g, ''));
-            const rejected = parseInt(rejectedElement.textContent.replace(/,/g, ''));
-            const rate = parseInt(rateElement.textContent.replace(/,/g, ''));
-            
-            const newInspected = inspected + Math.floor(Math.random() * 20);
-            const newRejected = rejected + Math.floor(Math.random() * 3);
-            const newRate = rate + Math.floor(Math.random() * 5) - 2;
-            
-            inspectedElement.textContent = newInspected.toLocaleString();
-            rejectedElement.textContent = newRejected.toLocaleString();
-            rateElement.textContent = Math.max(90, Math.min(130, newRate)).toLocaleString();
-            
-            // Update rejection percentage
-            const percentage = ((newRejected / newInspected) * 100).toFixed(1);
-            document.querySelector('.text-sm.text-gray-500.mt-2').textContent = ${percentage}% معدل الرفض;
-            
-        }, 5000);
-
-        // Feather icons
-        feather.replace();
     </script>
 </body>
 </html>
+
